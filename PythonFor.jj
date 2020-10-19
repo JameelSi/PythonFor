@@ -1,0 +1,167 @@
+PARSER_BEGIN(PythonFor)
+public class PythonFor {
+    public static String code = "";
+    public static String javaCodeStart = "";
+    public static java.util.HashSet<String> symtable = new java.util.HashSet<String>();
+    public static void main(String[] args) {
+        PythonFor p = null;
+        java.io.FileWriter out = null;
+        java.io.File javaTarget = null;
+        
+        System.out.println("Reading from file " + args[0]);
+        try {
+            p = new PythonFor(new java.io.FileInputStream(args[0]));
+            javaTarget = new java.io.File(args[1]);
+            out = new java.io.FileWriter(javaTarget);
+            javaCodeStart = "public class " + javaTarget.getName() + "{" +
+                "\npublic static void main(String[] args){\n";
+        }
+        catch(java.io.IOException e) {
+            System.out.println("Error in Writing");
+        }
+        
+        
+        try {
+            p.Program();
+            code = javaCodeStart + code + "\n" + "}" + "\n" + "}";
+            out.write(code);
+            out.close();
+            System.out.println("Parsing was done successfully");
+        }
+        catch(ParseException e) {
+            System.out.println("Error in parsing");
+            System.out.println(e.getMessage());
+        }
+        catch(TokenMgrError e) {
+            System.out.println("There was an error in analyzing the code");
+            System.out.println(e.getMessage());
+        }
+        catch(java.io.IOException e) {
+            System.out.println("Error in Writing");
+        }
+    }
+
+}
+PARSER_END(PythonFor)
+
+
+SKIP:{
+" "
+|"\n"
+|"\t"
+|"\r"
+}
+
+TOKEN: {
+    <FOR: "for">
+|   <IN: "in">
+|   <RANGE: "range">
+|   <LB: "(">
+|   <RB: ")">
+|   <COMMA: ",">
+|   <COLON: ":">
+|   <#LETTER: ["a"-"z", "A"-"Z"]>
+|   <#DIGIT: ["0"-"9"]>
+|   <PRINT: "print">
+|   <IDENTIFIER: <LETTER>(<LETTER>| "_"| <DIGIT>)*>
+|   <PLS: "+">
+|   <MINS: "-">
+|   <NUMBER:(<MINS>|<PLS>)? (<DIGIT>)+>
+|   <STRING: "\""(~["\n", "\r"])* "\"">
+}   
+
+void Program() : {String s1, s2;}
+{
+    ({symtable.clear();}
+    s1 = Loop(){ code+=s1;}
+    |s2 = StrPrint() {code+=s2;}
+    )*
+    <EOF>
+    
+
+}
+
+
+String StrPrint() : {  Token t; }
+{
+    <PRINT>
+    <LB>
+    t = <STRING>
+    <RB>
+    { return "System.out.println(" + t.image + ");\n"; }
+}
+
+
+String Loop():{Token t; String s1;String s2;}
+{
+    <FOR>
+    t=<IDENTIFIER>
+    {        
+    if(!symtable.contains(t.image))
+            symtable.add(t.image);
+        else
+            throw new ParseException(t + " is already defined");   }
+    <IN>
+    <RANGE>
+    s1=Indexing(t.image)
+    <COLON>
+    s2=Body(t.image)
+    {return "for("+s1+")\n"+s2;}
+    
+}
+String Body(String t):{String s1;}{
+    s1=Loop() 
+    {        
+ 
+        return s1;
+    }
+    |s1=StrPrint() {return s1;}
+}
+String Indexing(String t):{String s1;}
+{
+    <LB>
+    s1=Exp(t)
+    <RB>
+    {return s1;}
+
+}
+String Exp(String s) : { Token t; String s1; }
+{
+    t = <NUMBER> 
+    s1=  Second(s,t.image)
+    {
+        if(s1==null)
+            return "int "+s+"=0;"+s+"<"+t.image+";"+s+"+=1";
+        else
+            return s1;
+        }
+
+}
+String Second(String s,String ss) : { Token t; String s1; }
+{
+        <COMMA>
+    t = <NUMBER>   
+    s1=  Third(s,ss,t.image)
+    {   
+        if(s1==null)
+            return "int "+s+"="+ss+";"+s+"<"+t.image+";"+s+"+=1"; 
+        else
+            return s1;
+            }
+|   {}              {return null; }
+}
+
+String Third(String s,String ss,String sss) : { Token t; }
+{
+        <COMMA>
+    t = <NUMBER>    
+        {   
+            return "int "+s+"="+ss+";"+s+"<"+sss+";"+s+"+="+t.image; 
+
+            }
+            
+|   {}              {return null; }
+}
+
+
+
