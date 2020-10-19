@@ -1,0 +1,33 @@
+TOKENS :
+
+SKIP:{
+" "
+|"\n"
+|"\t"
+|"\r"
+}
+TOKEN: {
+    <FOR: "for">
+|   <IN: "in">
+|   <RANGE: "range">
+|   <LB: "(">
+|   <RB: ")">
+|   <COMMA: ",">
+|   <COLON: ":">
+|   <#LETTER: ["a"-"z", "A"-"Z"]>
+|   <#DIGIT: ["0"-"9"]>
+|   <IDENTIFIER: <LETTER>(<LETTER>| "_"| <DIGIT>)*>
+|   <NUMBER: (<DIGIT>)+>
+|   <PRINT: "print">
+|   <STRING: "\""(~["\n", "\r"])* "\"">
+}   
+
+FUNCTION /RULES:
+
+StrPrint  print(String)
+Loop for Identifier in range Indexing: Body
+Indexing  (Exp)
+Exp  Number Second
+Second  ,Number Third|
+Third, Number |
+BodyLoop|StrPrint
